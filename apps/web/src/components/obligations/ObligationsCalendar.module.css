@@ -1,0 +1,88 @@
+/* ObligationsCalendar.module.css
+   Висота контейнера + override дефолтних стилів react-big-calendar під палітру Bootstrap.
+   Дефолтні кольори бліді (числа/підписи ледь видно на білому, «сьогодні» майже непомітне) —
+   тут піднімаємо контраст. :global — бо .rbc-* класи належать бібліотеці, не CSS Module. */
+
+.calendarWrap {
+  height: 600px;
+}
+
+/* Підписи днів тижня (Пн Вт …) — темні й жирні. */
+.calendarWrap :global(.rbc-month-header .rbc-header) {
+  padding: 8px 4px;
+  font-weight: 600;
+  color: #212529; /* body */
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Числа днів місяця — темні, добре читаються. */
+.calendarWrap :global(.rbc-date-cell) {
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  color: #212529;
+}
+.calendarWrap :global(.rbc-date-cell .rbc-button-link) {
+  font-weight: 500;
+}
+
+/* Дні поза поточним місяцем — приглушені, але помітні. */
+.calendarWrap :global(.rbc-off-range .rbc-button-link) {
+  color: #adb5bd;
+}
+.calendarWrap :global(.rbc-off-range-bg) {
+  background-color: #f8f9fa;
+}
+
+/* СЬОГОДНІ — помітне виділення (Bootstrap primary). */
+.calendarWrap :global(.rbc-today) {
+  background-color: #cfe2ff;
+}
+.calendarWrap :global(.rbc-date-cell.rbc-now .rbc-button-link) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50rem;
+  background-color: #0d6efd;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Заголовок тулбара (Місяць Рік) — темний і крупніший. */
+.calendarWrap :global(.rbc-toolbar-label) {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+/* Кнопки тулбара — у стилі Bootstrap outline; активна — синя. */
+.calendarWrap :global(.rbc-toolbar button) {
+  color: #495057;
+  border-color: #dee2e6;
+}
+.calendarWrap :global(.rbc-toolbar button:hover) {
+  background-color: #f8f9fa;
+  border-color: #adb5bd;
+}
+.calendarWrap :global(.rbc-toolbar button.rbc-active),
+.calendarWrap :global(.rbc-toolbar button.rbc-active:hover),
+.calendarWrap :global(.rbc-toolbar button.rbc-active:focus) {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+
+/* Сітка — чіткіші лінії. */
+.calendarWrap :global(.rbc-month-view),
+.calendarWrap :global(.rbc-month-row + .rbc-month-row),
+.calendarWrap :global(.rbc-day-bg + .rbc-day-bg) {
+  border-color: #dee2e6;
+}
+
+/* Події — компактніші й читабельні. */
+.calendarWrap :global(.rbc-event) {
+  padding: 2px 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}

@@ -1,0 +1,12 @@
+/* Tooltip.module.css
+   Дрібниці, яких немає в Bootstrap-утилітах: z-index поверх модалок,
+   обмеження ширини та колір стрілки (має збігатися з .bg-dark). */
+
+.content {
+  z-index: 1080; /* вище за Bootstrap modal (1055) і popover (1070) */
+  max-width: 20rem;
+}
+
+.arrow {
+  fill: #212529; /* Bootstrap $dark — колір плашки */
+}

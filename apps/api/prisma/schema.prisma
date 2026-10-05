@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum ClientType {
+  fop_group_1
+  fop_group_2
+  fop_group_3
+  fop_general
+  tov
+  tov_general
+  pp
+  self_employed
+  public_organization
+  charity_fund
+  osbb
+}
+
+enum Periodicity {
+  monthly
+  quarterly
+  annual
+}
+
+enum ObligationStatus {
+  pending
+  collected
+  submitted
+  overdue
+}
+
+enum NotificationChannel {
+  telegram
+  telegram_overdue
+}
+
+enum SubscriptionPlan {
+  free
+  pro
+  unlimited
+}
+
+enum SubscriptionStatus {
+  active
+  cancelled
+  past_due
+}
+
+enum PaymentStatus {
+  success
+  failed
+  pending
+}
+
+enum Role {
+  super_admin // адміністратор платформи (бачить усе)
+  head_accountant // головний бухгалтер — власник фірми (самореєстрація)
+  accountant // бухгалтер — працівник, за запрошенням ГБ [підетап 2]
+  client // клієнт — бачить лише свої дедлайни/документи [підетап 3]
+}
+
+// ==================== MODELS ====================
+
+model Accountant {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  login              String?  @unique
+  passwordHash       String?  @map("password_hash")
+  googleId           String?  @unique @map("google_id")
+  name               String
+  phone              String? // мобільний телефон користувача (E.164), вводиться при реєстрації
+  role               Role     @default(head_accountant)
+  isVerified         Boolean  @default(false) @map("is_verified") // email підтверджено
+  telegramChatId     String?  @map("telegram_chat_id")
+  telegramLinkCode   String?  @map("telegram_link_code")
+  reminderDaysBefore Int      @default(3) @map("reminder_days_before")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  clients                 Client[]
+  subscription            Subscription?
+  payments                Payment[]
+  notificationsLog        NotificationLog[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+
+  @@map("accountants")
+}
+
+model Client {
+  id           String     @id @default(uuid())
+  accountantId String     @map("accountant_id")
+  accountant   Accountant @relation(fields: [accountantId], references: [id], onDelete: Cascade)
+  name         String
+  edrpouOrInn  String?    @map("edrpou_or_inn")
+  clientType   ClientType @map("client_type")
+  phone        String?
+  email        String?
+  notes        String?
+  /// Тариф щомісячного обслуговування (Module 09). Задається при створенні;
+  /// змінювати і бачити може лише head_accountant (див. module-02-clients/backend.md).
+  monthlyFee   Decimal?   @db.Decimal(10, 2) @map("monthly_fee")
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  obligations Obligation[]
+
+  @@index([accountantId])
+  @@index([accountantId, isActive])
+  @@map("clients")
+}
+
+model ObligationTemplate {
+  id                  String      @id @default(uuid())
+  clientType          ClientType  @map("client_type")
+  name                String
+  periodicity         Periodicity
+  deadlineDay         Int         @map("deadline_day")
+  deadlineMonthOffset Int         @default(1) @map("deadline_month_offset")
+  description         String?
+  isActive            Boolean     @default(true) @map("is_active")
+
+  obligations        Obligation[]
+  checklistTemplates ChecklistTemplate[]
+
+  @@map("obligation_templates")
+}
+
+model Obligation {
+  id          String              @id @default(uuid())
+  clientId    String              @map("client_id")
+  client      Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  templateId  String?             @map("template_id")
+  template    ObligationTemplate? @relation(fields: [templateId], references: [id])
+  name        String
+  periodLabel String              @map("period_label")
+  dueDate     DateTime            @map("due_date")
+  status      ObligationStatus    @default(pending)
+  notes       String?
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  checklistItems   ChecklistItem[]
+  notificationsLog NotificationLog[]
+
+  @@unique([clientId, templateId, periodLabel])
+  @@index([clientId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("obligations")
+}
+
+model ChecklistTemplate {
+  id                   String             @id @default(uuid())
+  obligationTemplateId String             @map("obligation_template_id")
+  obligationTemplate   ObligationTemplate @relation(fields: [obligationTemplateId], references: [id], onDelete: Cascade)
+  docName              String             @map("doc_name")
+  sortOrder            Int                @default(0) @map("sort_order")
+
+  @@map("checklist_templates")
+}
+
+model ChecklistItem {
+  id           String     @id @default(uuid())
+  obligationId String     @map("obligation_id")
+  obligation   Obligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  docName      String     @map("doc_name")
+  isCollected  Boolean    @default(false) @map("is_collected")
+  sortOrder    Int        @default(0) @map("sort_order")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@index([obligationId])
+  @@map("checklist_items")
+}
+
+model NotificationLog {
+  id           String              @id @default(uuid())
+  accountantId String              @map("accountant_id")
+  accountant   Accountant          @relation(fields: [accountantId], references: [id])
+  obligationId String              @map("obligation_id")
+  obligation   Obligation          @relation(fields: [obligationId], references: [id])
+  channel      NotificationChannel @default(telegram)
+  sentAt       DateTime            @map("sent_at")
+  messageText  String?             @map("message_text")
+
+  @@unique([obligationId, channel])
+  @@map("notifications_log")
+}
+
+model Subscription {
+  id               String             @id @default(uuid())
+  accountantId     String             @unique @map("accountant_id")
+  accountant       Accountant         @relation(fields: [accountantId], references: [id])
+  plan             SubscriptionPlan   @default(free)
+  clientLimit      Int                @default(2) @map("client_limit")
+  status           SubscriptionStatus @default(active)
+  liqpayOrderId    String?            @map("liqpay_order_id")
+  currentPeriodEnd DateTime?          @map("current_period_end")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  accountantId  String        @map("accountant_id")
+  accountant    Accountant    @relation(fields: [accountantId], references: [id])
+  amount        Decimal       @db.Decimal(10, 2)
+  currency      String        @default("UAH")
+  liqpayOrderId String        @map("liqpay_order_id")
+  status        PaymentStatus
+  rawPayload    Json?         @map("raw_payload")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  @@map("payments")
+}
+
+model PasswordResetToken {
+  id           String     @id @default(uuid())
+  accountantId String     @map("accountant_id")
+  accountant   Accountant @relation(fields: [accountantId], references: [id], onDelete: Cascade)
+  tokenHash    String     @unique @map("token_hash")
+  expiresAt    DateTime   @map("expires_at")
+  usedAt       DateTime?  @map("used_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@index([accountantId])
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id           String     @id @default(uuid())
+  accountantId String     @map("accountant_id")
+  accountant   Accountant @relation(fields: [accountantId], references: [id], onDelete: Cascade)
+  tokenHash    String     @unique @map("token_hash")
+  expiresAt    DateTime   @map("expires_at")
+  usedAt       DateTime?  @map("used_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@index([accountantId])
+  @@map("email_verification_tokens")
+}

@@ -1,0 +1,20 @@
+/* Глобальні стилі. Основа оформлення — Bootstrap (підключений у root layout);
+   тут лише те, що стосується всього застосунку.
+   Tailwind прибрано 2026-07-18 разом із міграцією на Bootstrap. */
+
+:root {
+  /* Шрифти підключає next/font у root layout (Geist). */
+  --app-font-sans: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --app-font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+body {
+  font-family: var(--app-font-sans);
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--app-font-mono);
+}

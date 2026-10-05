@@ -1,0 +1,19 @@
+{
+  "name": "accounting",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SaaS для бухгалтерів-аутсорсерів — монорепо (apps/api + apps/web)",
+  "scripts": {
+    "start": "npm run db:up && concurrently -n api,web -c cyan,magenta -k \"npm:dev:api\" \"npm:dev:web\"",
+    "stop": "node scripts/kill-ports.mjs && npm run db:stop",
+    "dev:api": "npm run dev --prefix apps/api",
+    "dev:web": "npm run dev --prefix apps/web",
+    "db:up": "docker compose -f apps/api/docker-compose.yml up -d --wait",
+    "db:stop": "docker compose -f apps/api/docker-compose.yml stop",
+    "db:logs": "docker compose -f apps/api/docker-compose.yml logs -f postgres",
+    "install:all": "npm install && npm install --prefix apps/api && npm install --prefix apps/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+*.log
+.claude/settings.local.json
+
+# службові файли (не для публічного репо)
+.idea/
+.claude/
+.playwright-mcp/
+project_docs/
+*.docx
+CLAUDE.md
+AGENTS.md
+.env.local
